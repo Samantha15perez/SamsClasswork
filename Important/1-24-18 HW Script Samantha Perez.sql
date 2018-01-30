@@ -321,7 +321,157 @@ VALUES
 
  PRINT '--  Payments Table Populated'
 
- /*
+
+  GO
+  CREATE PROCEDURE SP_Species
+  @Species Varchar(35) 
+  AS 
+  BEGIN
+  SELECT P.PatientName, CONCAT(C.FirstName, ' ', C.Lastname) [Owner], Addressline1, City, StateProvince, Postalcode, Phone, AltPhone, Email
+  FROM ClientContacts CC
+  INNER JOIN Clients C
+  ON C.ClientID = CC.ClientID
+  INNER JOIN Patients P
+  ON P.ClientID = CC.ClientID
+  INNER JOIN AnimalTypeReference A
+  ON A.AnimalTypeID = P.AnimalType
+  WHERE A.Species = @Species
+  END
+  
+
+   GO
+  CREATE PROCEDURE SP_Breed
+  @Breed Varchar(35) 
+  AS 
+  BEGIN
+  SELECT P.PatientName, CONCAT(C.FirstName, ' ', C.Lastname) [Owner], Addressline1, City, StateProvince, Postalcode, Phone, AltPhone, Email
+  FROM ClientContacts CC
+  INNER JOIN Clients C
+  ON C.ClientID = CC.ClientID
+  INNER JOIN Patients P
+  ON P.ClientID = CC.ClientID
+  INNER JOIN AnimalTypeReference A
+  ON A.AnimalTypeID = P.AnimalType
+  WHERE A.Breed = @Breed
+  END
+  
+
+
+
+    GO
+  CREATE PROCEDURE SP_Billing
+  @ClientID INT
+  AS 
+  BEGIN
+  SELECT B.Billdate, cast(starttime as date)[Visit Date], CONCAT('$', B.Amount, '.00') [Total Due] , CONCAT(C.FirstName, ' ', C.Lastname)[Client], CC.ClientID, AddressLine1, City, StateProvince, Postalcode, Phone
+  FROM ClientContacts CC
+  inner join Clients C
+  ON C.ClientID = CC.ClientID
+  inner join Billing B
+  on B.ClientID = CC.ClientID
+  inner join Visits V
+  ON V.VisitID = B.VisitID
+  WHERE CC.Clientid = @Clientid
+  END
+
+
+    GO
+  CREATE PROCEDURE SP_MailingList
+  AS 
+  BEGIN
+  Select CONCAT(E.Firstname, ' ', E.Lastname) [Name], Addressline1, City, Stateprovince, Postalcode, Phone, Altphone
+  FROM EmployeeContactInfo EC
+  INNER JOIN Employees E
+  ON E.EmployeeID = EC.EmployeeID
+  Where Phone IS NOT NULL
+  END
+
+
+
+GO 
+CREATE PROCEDURE SP_CreateNewClient
+
+@Firstname varchar(25),
+@Lastname varchar(25),
+@middlename varchar(25),
+@AddressID INT,
+@addresstype INT, 
+@AddressLine1 Varchar(50),
+@Addressline2 Varchar(50),
+@City Varchar(35),
+@StateProvince Varchar(25),
+@PostalCode Varchar(15),
+@Phone Varchar(15),
+@AltPhone Varchar(15),
+@Email Varchar(35),
+@Clientid int OUTPUT
+AS
+BEGIN
+
+INSERT INTO Clients
+(Firstname, Lastname, MiddleName)
+Values
+(@Firstname, @Lastname, @MiddleName)
+
+Set @clientid = (Select top 1 SCOPE_IDENTITY() from clients)
+
+INSERT INTO Clientcontacts
+(Clientid, addresstype, AddressLine1, Addressline2, city, StateProvince, PostalCode, phone, AltPhone, email)
+VALUES
+(@Clientid, @addresstype, @AddressLine1, @Addressline2, @city, @StateProvince, @PostalCode, @phone, @AltPhone, @email)
+
+Select @Clientid
+FROM Clients
+END
+GO
+
+
+CREATE PROCEDURE SP_CreateNewEmployee
+
+
+ @LastName varchar(25),
+ @Firstname varchar(25),
+ @MiddleName varchar(25),
+ @Hiredate DATE,
+ @Title varchar(50),
+ @AddressLine1 Varchar(50),
+ @Addressline2 Varchar(50),
+ @City Varchar(35),
+ @StateProvince Varchar(25),
+ @PostalCode Varchar(15),
+ @Phone Varchar(15),
+ @AltPhone Varchar(15),
+ @EmployeeID INT OUTPUT
+ AS
+ BEGIN
+
+ INSERT INTO Employees
+(Firstname, Lastname, MiddleName, hiredate, title)
+Values
+(@Firstname, @Lastname, @MiddleName, @hiredate, @title)
+
+Set @employeeid = (Select top 1 SCOPE_IDENTITY() from Employees)
+
+INSERT INTO EmployeeContactInfo
+(AddressLine1, Addressline2, city, StateProvince, PostalCode, phone, AltPhone, Employeeid)
+VALUES
+(@AddressLine1, @Addressline2, @city, @StateProvince, @PostalCode, @phone, @AltPhone, @Employeeid)
+
+SELECT @employeeID
+FROM Employees
+END
+GO
+
+
+   PRINT '-- Procedures Created'
+
+
+
+       IF (Select COUNT(*) from Sys.syslogins s where s.loginname = 'vetmanager') > 0 
+ BEGIN
+ DROP login vetmanager
+ END 
+ GO
 
   CREATE LOGIN VetManager
   WITH PASSWORD = 'VTMAN3357';
@@ -330,9 +480,18 @@ VALUES
   CREATE USER VetManager FOR LOGIN VetManager;
   GO
 
+         IF (Select COUNT(*) from Sys.syslogins s where s.loginname = 'vetclerk') > 0 
+ BEGIN
+ DROP login vetclerk
+ END 
+ GO
+
   CREATE LOGIN VetClerk
-  WITH PASSWORD 'ClerkV0829';
+  WITH PASSWORD = 'ClerkV0829';
   GO 
+
+  CREATE USER Vetclerk FOR LOGIN Vetclerk;
+  GO
 
   ALTER ROLE db_datareader ADD MEMBER VetManager;
   GO
@@ -363,16 +522,69 @@ VALUES
    Clientcontacts
   TO Vetclerk
 
- GRANT EXEC ON OBJECT::
- sp_species 
+    DENY ALTER ON OBJECT::
+  EmployeeContactInfo
+  TO Vetclerk
+
+  DENY SELECT ON OBJECT::
+  EmployeeContactInfo
+  TO Vetclerk
+
+  DENY UPDATE ON OBJECT::
+  EmployeeContactInfo
+  TO Vetclerk
+
+  DENY INSERT ON OBJECT:: 
+   EmployeeContactInfo
+  TO Vetclerk
+
+  DENY DELETE ON OBJECT::
+   EmployeeContactInfo
+  TO Vetclerk
+
+     GRANT EXEC ON OBJECT::
+ sp_breed 
  TO VETCLERK
 
- GRANT EXEC ON OBJECT::
+     GRANT EXEC ON OBJECT::
+ SP_MailingList
+ to vetclerk
+
+  GRANT EXEC ON OBJECT::
  SP_billing
  to vetclerk
 
+   GRANT EXEC ON OBJECT::
+ sp_species 
+ TO VETCLERK
 
-  PRINT '-- Created User Logins'
+    PRINT '-- Permissions Granted to user VetClerk'
+
+     GRANT EXEC ON OBJECT::
+ sp_breed 
+ TO vetmanager
+
+     GRANT EXEC ON OBJECT::
+ SP_MailingList
+ to vetmanager
+
+  GRANT EXEC ON OBJECT::
+ SP_billing
+ to vetmanager
+
+   GRANT EXEC ON OBJECT::
+ sp_species 
+ TO vetmanager
+
+  GRANT EXEC ON OBJECT::
+ sp_CreateNewClient
+ TO vetmanager
+
+  GRANT EXEC ON OBJECT::
+ sp_CreateNewEmployee
+ TO vetmanager
+ 
+    PRINT '-- Permissions Granted to user VetManager'
 
 
-  */ 
+	
