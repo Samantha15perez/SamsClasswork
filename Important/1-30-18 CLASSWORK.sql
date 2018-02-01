@@ -12,8 +12,16 @@ use adventureworks2012
 --Inner join person.Person P
 --on p.BusinessEntityID = sp.BusinessEntityID
 
---2
 
+--SELECT		concat(p.firstname, ' ',p.lastname) [Name]
+--FROM		Person.Person p
+--INNER JOIN	HumanResources.Employee e
+--ON			e.BusinessEntityID = p.BusinessEntityID
+--INNER JOIN	Sales.SalesPerson sp
+--ON			sp.BusinessEntityID = e.BusinessEntityID
+--order by concat(p.firstname, ' ',p.lastname)
+
+--2
 
 --BEGIN TRANSACTION
 
@@ -67,10 +75,10 @@ use adventureworks2012
 --(
 --ReportID INT Identity(1,1), 
 --PurchaseOrderID INT,
---Entrydate date, 
---issuedetails varchar(100), 
---vendorresponse varchar(100),
---resolved bit,
+--Entrydate DATETIME DEFAULT GETDATE(), 
+--issuedetails varchar(max), 
+--vendorresponse varchar(max),
+--resolved bit DEFAULT (0),
 --PRIMARY KEY (ReportID),
 --CONSTRAINT FK_VendorIssues_PurchaseOrderHeader FOREIGN KEY (PurchaseOrderID) REFERENCES purchasing.PurchaseOrderHeader (PurchaseOrderid)
 --)
@@ -184,7 +192,6 @@ use adventureworks2012
 --PRIMARY KEY (Businessentityid)
 --)
 
---select * from Humanresources.EmployeeAddresses
 
 --Insert INTO Humanresources.EmployeeAddresses (Businessentityid, AddressLine1, AddressLine2, City, [State], Postalcode, country)
 --Select P.businessentityid, A.Addressline1, A.Addressline2, A.City, PSP.Name, A.Postalcode,CR.Name
